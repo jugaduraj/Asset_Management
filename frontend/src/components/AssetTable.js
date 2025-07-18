@@ -52,3 +52,6 @@ const AssetTable = ({ assets, onEdit, onDelete, getStatusColor }) => (
       ))}
     </tbody>
   </table>
+);
+
+export default AssetTable;
