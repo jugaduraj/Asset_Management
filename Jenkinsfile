@@ -11,7 +11,7 @@ pipeline {
 
     stage('Clone Code') {
       steps {
-        git url: 'https://github.com/jugaduraj/Asset_Management.git'
+        git branch: 'main', url: 'https://github.com/jugaduraj/Asset_Management.git'
         // If private repo, add credentialsId: 'your-credential-id'
       }
     }
