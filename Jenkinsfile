@@ -19,6 +19,7 @@ pipeline {
       steps {
         dir("${BACKEND_DIR}") {
           sh 'python3 -m venv venv'
+          sh './venv/bin/pip install --upgrade pip'
           sh './venv/bin/pip install -r requirements.txt'
         }
       }
@@ -40,7 +41,7 @@ pipeline {
       }
     }
 
-    stage('Test Backend (optional)') {
+    stage('Test Backend') {
       steps {
         dir("${BACKEND_DIR}") {
           sh './venv/bin/python -m unittest || true'
@@ -48,9 +49,13 @@ pipeline {
       }
     }
 
-    stage('Docker Build & Run (optional)') {
+    stage('Docker Build & Run') {
       steps {
+        // Stop and remove existing containers
+        sh 'docker-compose down || true'
+        // Build images
         sh 'docker-compose build'
+        // Run containers, mapping backend to port 80
         sh 'docker-compose up -d'
       }
     }

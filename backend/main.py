@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import Base, Asset, AssetSchema
+import sys
+
+sys.path.append('/app')
 
 Base.metadata.create_all(bind=engine)
 
@@ -23,7 +26,7 @@ def get_assets():
 
 @app.post("/assets")
 def create_asset(asset: AssetSchema):
-    db = SessionLocal()
+    db: Session = SessionLocal()
     db_asset = Asset(**asset.dict())
     db.add(db_asset)
     db.commit()

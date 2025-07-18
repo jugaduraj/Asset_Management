@@ -12,10 +12,11 @@
 }
 
 .modal {
-  background: white;
-  padding: 20px;
+  max-height: 80vh;      /* Limit modal height to 80% of viewport */
+  overflow-y: auto;      /* Enable vertical scrolling */
+  padding: 24px;
+  background: #fff;
   border-radius: 8px;
-  width: 400px;
 }
 
 .modal input,

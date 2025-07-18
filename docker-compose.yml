@@ -3,7 +3,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "80:8000"
     environment:
       - DB_URL=postgresql://postgres:postgres@db:5432/postgres
     depends_on:
@@ -12,7 +12,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "3001:3000"   # Host port 3001 -> Container port 3000
     depends_on:
       - backend
 

@@ -6,26 +6,33 @@ import "./App.css";
 
 function App() {
   const [assets, setAssets] = useState([
-    {
-      id: 1001,
-      name: "Dell Laptop XPS 15",
-      category: "Electronics",
-      assignedTo: "John Smith",
-      status: "Assigned",
-      purchase_date: "2023-05-01",
-    },
-  ]);
+  {
+    id: 1001,
+    assetTag: "AST-1001",
+    hostName: "Host-01",
+    assetType: "Laptop",
+    make: "Dell",
+    model: "XPS 15",
+    serialNo: "SN123456",
+    processor: "Intel i7",
+    os: "Windows",
+    osVersion: "11 Pro",
+    ram: "16GB",
+    hddSsd: "512GB SSD",
+    location: "HQ",
+    status: "Assigned",
+    assignedTo: "John Smith",
+    remark: "Good condition",
+    warrantyStatus: "Active",
+    warrantyExpirationDate: "2026-05-01",
+    purchase_date: "2023-05-01",
+  },
+]);
 
   const [showModal, setShowModal] = useState(false);
 
   const handleAddAsset = (newAsset) => {
-    setAssets([
-      ...assets,
-      {
-        ...newAsset,
-        id: Math.floor(1000 + Math.random() * 9000),
-      },
-    ]);
+    setAssets((prevAssets) => [newAsset, ...prevAssets]);
   };
 
   const stats = {
@@ -52,35 +59,59 @@ function App() {
         </div>
 
         <h2 style={{ marginTop: "30px" }}>Recent Assets</h2>
-        <table className="assets-table">
-          <thead>
-            <tr>
-              <th>Asset ID</th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Assigned To</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assets.map((asset) => (
-              <tr key={asset.id}>
-                <td>AST-{asset.id}</td>
-                <td>{asset.name}</td>
-                <td>{asset.category}</td>
-                <td>{asset.assignedTo || "-"}</td>
-                <td style={{ color: getStatusColor(asset.status), fontWeight: "bold" }}>
-                  {asset.status}
-                </td>
-                <td>
-                  <button className="edit-btn">Edit</button>
-                  <button className="delete-btn">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+<table className="assets-table">
+  <thead>
+    <tr>
+      <th>Asset Tag</th>
+      <th>Host Name</th>
+      <th>Asset Type</th>
+      <th>Make</th>
+      <th>Model</th>
+      <th>Serial No.</th>
+      <th>Processor</th>
+      <th>OS</th>
+      <th>OS Version</th>
+      <th>RAM</th>
+      <th>HDD/SSD</th>
+      <th>Location</th>
+      <th>Status</th>
+      <th>Assigned To</th> {/* Add this line */}
+      <th>Remark</th>
+      <th>Warranty Status</th>
+      <th>Warranty Expiration Date</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {assets.map((asset) => (
+      <tr key={asset.id}>
+        <td>{asset.assetTag}</td>
+        <td>{asset.hostName}</td>
+        <td>{asset.assetType}</td>
+        <td>{asset.make}</td>
+        <td>{asset.model}</td>
+        <td>{asset.serialNo}</td>
+        <td>{asset.processor}</td>
+        <td>{asset.os}</td>
+        <td>{asset.osVersion}</td>
+        <td>{asset.ram}</td>
+        <td>{asset.hddSsd}</td>
+        <td>{asset.location}</td>
+        <td style={{ color: getStatusColor(asset.status), fontWeight: "bold" }}>
+          {asset.status}
+        </td>
+        <td>{asset.assignedTo}</td> {/* Add this line */}
+        <td>{asset.remark}</td>
+        <td>{asset.warrantyStatus}</td>
+        <td>{asset.warrantyExpirationDate}</td>
+        <td>
+          <button className="edit-btn">Edit</button>
+          <button className="delete-btn">Delete</button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
 
         <AssetFormModal
           isOpen={showModal}
