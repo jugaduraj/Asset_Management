@@ -6,18 +6,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { LogEntry } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from './ui/button';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import { downloadCsv } from '@/lib/export';
 
 
 type ReportsPageProps = {
   logs: LogEntry[];
+  onRefresh: () => void;
 };
 
-export function ReportsPage({ logs }: ReportsPageProps) {
+export function ReportsPage({ logs, onRefresh }: ReportsPageProps) {
 
   const handleExportLogs = () => {
-    downloadCsv(logs, 'activity-logs');
+    // Re-format logs for export
+    const exportedLogs = logs.map(log => ({
+      ...log,
+      timestamp: new Date(log.timestamp).toLocaleString(),
+    }));
+    downloadCsv(exportedLogs, 'activity-logs');
   }
 
   return (
@@ -25,10 +31,15 @@ export function ReportsPage({ logs }: ReportsPageProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Activity Log</CardTitle>
-           <Button variant="outline" onClick={handleExportLogs}>
-              <Download className="mr-2 h-4 w-4" />
-              Export
+           <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={onRefresh}>
+                <RefreshCw className="h-4 w-4" />
             </Button>
+            <Button variant="outline" onClick={handleExportLogs}>
+                <Download className="mr-2 h-4 w-4" />
+                Export
+            </Button>
+           </div>
         </CardHeader>
         <CardContent>
           <Table>

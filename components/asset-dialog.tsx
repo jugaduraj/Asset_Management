@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -55,10 +56,11 @@ type AssetDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSave: (values: Omit<Asset, 'id' | 'maintenanceHistory'>, id?: string) => void;
   asset?: Asset | null;
+  isSaving?: boolean;
 };
 
-export function AssetDialog({ open, onOpenChange, onSave, asset }: AssetDialogProps) {
-  const [isPending, startTransition] = useTransition();
+export function AssetDialog({ open, onOpenChange, onSave, asset, isSaving }: AssetDialogProps) {
+  const [isSuggesting, startSuggestionTransition] = useTransition();
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -90,16 +92,38 @@ export function AssetDialog({ open, onOpenChange, onSave, asset }: AssetDialogPr
   const watchedType = form.watch('type');
 
   useEffect(() => {
-    if (asset) {
-      form.reset({
-        ...asset,
-        purchaseDate: new Date(asset.purchaseDate),
-        warrantyExpirationDate: asset.warrantyExpirationDate ? new Date(asset.warrantyExpirationDate) : undefined,
-      });
-    } else {
-      form.reset();
+    if (open) {
+        if (asset) {
+          form.reset({
+            ...asset,
+            purchaseDate: new Date(asset.purchaseDate),
+            warrantyExpirationDate: asset.warrantyExpirationDate ? new Date(asset.warrantyExpirationDate) : undefined,
+          });
+        } else {
+          form.reset({
+              name: '',
+              assetTag: '',
+              type: 'Hardware',
+              make: '',
+              model: '',
+              serialNumber: '',
+              processor: '',
+              os: '',
+              osVersion: '',
+              ram: '',
+              storage: '',
+              location: '',
+              status: 'Active',
+              assignedUser: '',
+              remark: '',
+              warrantyStatus: 'Expired',
+              department: '',
+              category: '',
+              licenseInfo: '',
+          });
+        }
+        setSuggestedCategories([]);
     }
-    setSuggestedCategories([]);
   }, [asset, form, open]);
 
   const handleSuggestCategory = () => {
@@ -113,7 +137,7 @@ export function AssetDialog({ open, onOpenChange, onSave, asset }: AssetDialogPr
       return;
     }
     
-    startTransition(async () => {
+    startSuggestionTransition(async () => {
       const assetDetails = `Name: ${name}, Make: ${make}, Model: ${model}, Serial Number: ${serialNumber}`;
       const suggestions = await suggestCategoryAction({ assetDetails });
       setSuggestedCategories(suggestions);
@@ -171,8 +195,8 @@ export function AssetDialog({ open, onOpenChange, onSave, asset }: AssetDialogPr
                 <FormItem><FormLabel>Category</FormLabel><FormControl><Input placeholder="e.g., Workstation, Server, License" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <div>
-                <Button type="button" variant="outline" size="sm" onClick={handleSuggestCategory} disabled={isPending} className="mt-7">
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                <Button type="button" variant="outline" size="sm" onClick={handleSuggestCategory} disabled={isSuggesting} className="mt-7">
+                  {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
                   Suggest with AI
                 </Button>
                 {suggestedCategories.length > 0 && (
@@ -276,9 +300,12 @@ export function AssetDialog({ open, onOpenChange, onSave, asset }: AssetDialogPr
             
             <DialogFooter className="pt-4 pr-6">
               <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
+                <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
               </DialogClose>
-              <Button type="submit">Save Asset</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Asset
+              </Button>
             </DialogFooter>
           </form>
         </Form>

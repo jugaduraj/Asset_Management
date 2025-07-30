@@ -1,8 +1,19 @@
 
 import type { Asset, Employee, LogEntry } from './types';
 
-export const initialAssets: Asset[] = [];
+// This file is now a fallback and won't be actively used if the database connection is successful.
+// It's good practice to keep it for local testing or as a backup.
 
-export const initialEmployees: Employee[] = [];
+interface AppData {
+    assets: Asset[];
+    employees: Employee[];
+    logs: LogEntry[];
+}
 
-export const initialLogs: LogEntry[] = [];
+const data: AppData = {
+    assets: [],
+    employees: [],
+    logs: [],
+};
+
+export default data;

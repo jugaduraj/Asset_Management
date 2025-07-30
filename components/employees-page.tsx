@@ -1,25 +1,25 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { UserPlus, Search, Download } from 'lucide-react';
-import type { Employee, LogEntry } from '@/lib/types';
+import type { Employee } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { initialEmployees } from '@/lib/data';
 import { EmployeeTable } from '@/components/employees-table';
 import { EmployeeDialog } from '@/components/employee-dialog';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
 import { downloadCsv } from '@/lib/export';
+import { saveEmployee, deleteEmployee, getEmployees } from '@/lib/actions';
 
-type EmployeesPageProps = {
-  addLogEntry: (log: Omit<LogEntry, 'id'>) => void;
-}
+type EmployeesPageProps = {}
 
-export function EmployeesPage({ addLogEntry }: EmployeesPageProps) {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+export const EmployeesPage = forwardRef<any, EmployeesPageProps>((props, ref) => {
+  const [isPending, startTransition] = useTransition();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false);
@@ -29,6 +29,29 @@ export function EmployeesPage({ addLogEntry }: EmployeesPageProps) {
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
 
   const { toast } = useToast();
+
+  const fetchEmployees = async () => {
+      setIsLoading(true);
+      try {
+          const employeesData = await getEmployees();
+          setEmployees(employeesData);
+      } catch (error) {
+          console.error("Failed to fetch employees:", error);
+          toast({ title: "Error", description: "Could not fetch employees.", variant: "destructive" });
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+  
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => {
+        handleOpenAddDialog();
+    }
+  }));
 
   const filteredEmployees = useMemo(() => {
     return employees.filter(employee =>
@@ -55,50 +78,25 @@ export function EmployeesPage({ addLogEntry }: EmployeesPageProps) {
   };
   
   const handleDeleteConfirm = () => {
-    const user = 'Guest User'; // In a real app, this would come from auth
     if (deletingEmployee) {
-      setEmployees(employees.filter(e => e.id !== deletingEmployee.id));
-      toast({ title: "Employee Deleted", description: `Successfully deleted ${deletingEmployee.name}.`, variant: "destructive" });
-      addLogEntry({
-          timestamp: new Date().toISOString(),
-          user,
-          action: 'Deleted Employee',
-          details: `Employee "${deletingEmployee.name}" was deleted.`
-      });
-      setIsDeleteDialogOpen(false);
-      setDeletingEmployee(null);
+        startTransition(async () => {
+            await deleteEmployee(deletingEmployee.id);
+            toast({ title: "Employee Deleted", description: `Successfully deleted ${deletingEmployee.name}.`, variant: "destructive" });
+            setIsDeleteDialogOpen(false);
+            setDeletingEmployee(null);
+            fetchEmployees(); // Refetch employees
+        });
     }
   };
 
   const handleSaveEmployee = (values: Omit<Employee, 'id' | 'avatar'>, id?: string) => {
-    const user = 'Guest User'; // In a real app, this would come from auth
-    if (id) {
-      setEmployees(employees.map(e => e.id === id ? { ...e, ...values } : e));
-      toast({ title: "Employee Updated", description: `Successfully updated ${values.name}.` });
-      addLogEntry({
-          timestamp: new Date().toISOString(),
-          user,
-          action: 'Updated Employee',
-          details: `Employee "${values.name}" was updated.`
-      });
-    } else {
-      const newEmployee: Employee = {
-        ...values,
-        id: new Date().toISOString(),
-        avatar: `https://placehold.co/40x40.png?text=${values.name.charAt(0)}`,
-        assets: values.assets,
-      };
-      setEmployees([...employees, newEmployee]);
-      toast({ title: "Employee Added", description: `Successfully added ${values.name}.` });
-      addLogEntry({
-          timestamp: new Date().toISOString(),
-          user,
-          action: 'Created Employee',
-          details: `Employee "${values.name}" was created.`
-      });
-    }
-    setIsEmployeeDialogOpen(false);
-    setEditingEmployee(null);
+    startTransition(async () => {
+        await saveEmployee(values, id);
+        toast({ title: id ? "Employee Updated" : "Employee Added", description: `Successfully saved ${values.name}.` });
+        setIsEmployeeDialogOpen(false);
+        setEditingEmployee(null);
+        fetchEmployees(); // Refetch employees
+    });
   };
 
   const handleExportEmployees = () => {
@@ -115,13 +113,6 @@ export function EmployeesPage({ addLogEntry }: EmployeesPageProps) {
 
   return (
     <div className="flex flex-1 flex-col p-4 md:p-6 lg:p-8 gap-6">
-        <div className="flex justify-between items-center">
-            <div></div>
-            <Button onClick={handleOpenAddDialog}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Employee
-            </Button>
-        </div>
         <Card>
             <CardHeader>
                 <CardTitle>Employee Filters</CardTitle>
@@ -147,11 +138,15 @@ export function EmployeesPage({ addLogEntry }: EmployeesPageProps) {
                 </Button>
             </CardHeader>
             <CardContent>
-                <EmployeeTable
-                  employees={filteredEmployees}
-                  onEdit={handleOpenEditDialog}
-                  onDelete={handleOpenDeleteDialog}
-                />
+                {isLoading ? (
+                    <div className="text-center py-10">Loading employees...</div>
+                ) : (
+                    <EmployeeTable
+                    employees={filteredEmployees}
+                    onEdit={handleOpenEditDialog}
+                    onDelete={handleOpenDeleteDialog}
+                    />
+                )}
             </CardContent>
         </Card>
 
@@ -160,14 +155,17 @@ export function EmployeesPage({ addLogEntry }: EmployeesPageProps) {
             onOpenChange={setIsEmployeeDialogOpen}
             onSave={handleSaveEmployee}
             employee={editingEmployee}
+            isSaving={isPending}
         />
         
         <DeleteConfirmDialog
             open={isDeleteDialogOpen}
             onOpenChange={setIsDeleteDialogOpen}
             onConfirm={handleDeleteConfirm}
+            isDeleting={isPending}
             assetName={deletingEmployee?.name}
         />
     </div>
   );
-}
+});
+EmployeesPage.displayName = "EmployeesPage";

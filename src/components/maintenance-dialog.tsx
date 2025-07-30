@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -12,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import type { Asset, MaintenanceEntry } from '@/lib/types';
 import { format } from 'date-fns';
+import { Loader2 } from 'lucide-react';
 
 const maintenanceSchema = z.object({
   description: z.string().min(5, 'Description must be at least 5 characters.'),
@@ -25,9 +27,10 @@ type MaintenanceDialogProps = {
   onOpenChange: (open: boolean) => void;
   asset: Asset | null;
   onSaveLog: (assetId: string, log: Omit<MaintenanceEntry, 'id' | 'date'>) => void;
+  isSaving?: boolean;
 };
 
-export function MaintenanceDialog({ open, onOpenChange, asset, onSaveLog }: MaintenanceDialogProps) {
+export function MaintenanceDialog({ open, onOpenChange, asset, onSaveLog, isSaving }: MaintenanceDialogProps) {
   const form = useForm<MaintenanceFormValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: { description: '', cost: 0 },
@@ -52,7 +55,7 @@ export function MaintenanceDialog({ open, onOpenChange, asset, onSaveLog }: Main
           <h3 className="font-semibold">Maintenance History</h3>
           <ScrollArea className="h-40 w-full rounded-md border p-4">
             {asset.maintenanceHistory.length > 0 ? (
-              asset.maintenanceHistory.map((log, index) => (
+              [...asset.maintenanceHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log, index) => (
                 <div key={log.id}>
                   <div className="text-sm">
                     <div className="flex justify-between items-center">
@@ -82,7 +85,10 @@ export function MaintenanceDialog({ open, onOpenChange, asset, onSaveLog }: Main
                 <FormItem><FormLabel>Cost ($)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 75.50" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             <DialogFooter>
-                <Button type="submit">Add Log Entry</Button>
+                <Button type="submit" disabled={isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Add Log Entry
+                </Button>
             </DialogFooter>
           </form>
         </Form>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -10,16 +11,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants, Button } from "@/components/ui/button";
+import { Loader2 } from 'lucide-react';
 
 type DeleteConfirmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   assetName?: string;
+  isDeleting?: boolean;
 };
 
-export function DeleteConfirmDialog({ open, onOpenChange, onConfirm, assetName }: DeleteConfirmDialogProps) {
+export function DeleteConfirmDialog({ open, onOpenChange, onConfirm, assetName, isDeleting }: DeleteConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -31,13 +34,15 @@ export function DeleteConfirmDialog({ open, onOpenChange, onConfirm, assetName }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction 
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <Button
             onClick={onConfirm}
-            className={buttonVariants({ variant: "destructive" })}
+            variant="destructive"
+            disabled={isDeleting}
           >
+            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

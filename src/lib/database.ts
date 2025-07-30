@@ -1,41 +1,36 @@
-// This file is a placeholder for your database connection logic.
-// You can adapt this file to connect to any database by using environment variables.
+import mysql from 'mysql2/promise';
 
-// Example for a PostgreSQL or MySQL-like database:
-const dbHost = process.env.DB_HOST;
-const dbUser = process.env.DB_USER;
-const dbPassword = process.env.DB_PASSWORD;
-const dbName = process.env.DB_NAME;
+// This file contains the database connection logic.
+// The credentials are hardcoded here as per your request.
 
-// Here you would initialize your database client, for example:
-// import { Pool } from 'pg';
-//
-// export const pool = new Pool({
-//   host: dbHost,
-//   user: dbUser,
-//   password: dbPassword,
-//   database: dbName,
-// });
-//
-// Or for Firestore, you would initialize the Firebase Admin SDK:
-/*
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+const dbConfig = {
+    host: "192.168.2.6",
+    user: "assetuser",
+    password: "assetpass",
+    database: "assetdb",
+    port: 3306,
+};
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-
-initializeApp({
-  credential: cert(serviceAccount)
-});
-
-export const db = getFirestore();
-*/
 
 console.log("Database configuration loaded:");
-console.log("DB_HOST:", dbHost ? "********" : "Not Set");
-console.log("DB_USER:", dbUser ? "********" : "Not Set");
-console.log("DB_PASSWORD:", dbPassword ? "********" : "Not Set");
-console.log("DB_NAME:", dbName ? "********" : "Not Set");
+console.log("DB_HOST:", dbConfig.host ? "********" : "Not Set");
+console.log("DB_USER:", dbConfig.user ? "********" : "Not Set");
+console.log("DB_PASSWORD:", dbConfig.password ? "********" : "Not Set");
+console.log("DB_NAME:", dbConfig.database ? "********" : "Not Set");
 
-// You can then import 'db' or 'pool' from this file into other files
-// where you need to interact with your database.
+// Create a connection pool
+export const pool = mysql.createPool(dbConfig);
+
+// Function to test the connection
+export async function testConnection() {
+    try {
+        const connection = await pool.getConnection();
+        console.log('Successfully connected to the database.');
+        connection.release();
+    } catch (error) {
+        console.error('Failed to connect to the database:', error);
+    }
+}
+
+// Test the connection when the application starts
+testConnection();

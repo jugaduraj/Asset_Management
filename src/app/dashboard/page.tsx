@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarHeader, SidebarFooter, SidebarSeparator } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,57 +12,76 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, LayoutDashboard, Users, Component, FileText, LogOut, Package } from 'lucide-react';
 import Image from 'next/image';
-import { initialAssets, initialLogs } from '@/lib/data';
-import type { LogEntry, AssetStatus } from '@/lib/types';
 import { RapidoLogo } from '@/components/rapido-logo';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-
+import type { LogEntry, AssetStatus, Asset, Employee } from '@/lib/types';
+import { getAssets, getEmployees, getLogs } from '@/lib/actions';
 
 type Page = 'dashboard' | 'employees' | 'assets' | 'reports';
-
-// A type guard to check if a component has a specific method
-interface Handlers {
-  openAddDialog: () => void;
-}
-
-function componentHasHandlers(component: any): component is Handlers {
-    return component && typeof component.openAddDialog === 'function';
-}
-
 
 export default function Dashboard() {
   const router = useRouter();
   const [activePage, setActivePage] = useState<Page>('dashboard');
-  const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
-  const pageRef = useRef<Handlers>(null);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
-  const addLogEntry = (log: Omit<LogEntry, 'id'>) => {
-    setLogs(prevLogs => [{ ...log, id: new Date().toISOString() }, ...prevLogs]);
-  }
-  
+  const assetPageRef = useRef<{ openAddDialog: () => void }>(null);
+  const employeePageRef = useRef<{ openAddDialog: () => void }>(null);
+
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+        const [assetsData, employeesData, logsData] = await Promise.all([
+            getAssets(),
+            getEmployees(),
+            getLogs()
+        ]);
+        setAssets(assetsData);
+        setEmployees(employeesData);
+        setLogs(logsData);
+    } catch (error) {
+        console.error("Failed to fetch data:", error);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const handleLogout = () => {
     router.push('/');
   }
 
   const renderPage = () => {
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-full">Loading...</div>
+    }
     switch (activePage) {
       case 'dashboard':
-        return <DashboardPage setActivePage={setActivePage} />;
+        return <DashboardPage setActivePage={setActivePage} assets={assets} employees={employees} />;
       case 'assets':
-        return <AssetPage ref={pageRef} addLogEntry={addLogEntry} />;
+        return <AssetPage ref={assetPageRef} />;
       case 'employees':
-        return <EmployeesPage addLogEntry={addLogEntry} />;
+        return <EmployeesPage ref={employeePageRef} />;
       case 'reports':
-        return <ReportsPage logs={logs} />;
+        return <ReportsPage logs={logs} onRefresh={fetchData} />;
       default:
-        return <DashboardPage setActivePage={setActivePage} />;
+        return <DashboardPage setActivePage={setActivePage} assets={assets} employees={employees} />;
     }
   };
   
   const handleOpenAddDialog = () => {
-    if (componentHasHandlers(pageRef.current)) {
-        pageRef.current.openAddDialog();
+    if (activePage === 'assets' && assetPageRef.current) {
+        assetPageRef.current.openAddDialog();
+    } else if (activePage === 'employees' && employeePageRef.current) {
+        employeePageRef.current.openAddDialog();
     }
   }
 
@@ -76,8 +95,12 @@ export default function Dashboard() {
             </Button>
          )
       case 'employees':
-        // This button's functionality will be handled within the EmployeesPage component
-        return null;
+        return (
+             <Button onClick={handleOpenAddDialog}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Employee
+            </Button>
+        )
       case 'reports':
       case 'dashboard':
       default:
@@ -157,12 +180,12 @@ export default function Dashboard() {
   );
 }
 
-const DashboardPage = ({ setActivePage }: { setActivePage: (page: Page) => void }) => {
+const DashboardPage = ({ setActivePage, assets, employees }: { setActivePage: (page: Page) => void, assets: Asset[], employees: Employee[] }) => {
     const assetStats = useMemo(() => {
         const statusCounts: Record<AssetStatus, number> = { 'Active': 0, 'Inactive': 0, 'In Repair': 0, 'Retired': 0 };
         const categoryCounts: Record<string, number> = {};
 
-        initialAssets.forEach(asset => {
+        assets.forEach(asset => {
             statusCounts[asset.status]++;
             categoryCounts[asset.category] = (categoryCounts[asset.category] || 0) + 1;
         });
@@ -170,11 +193,11 @@ const DashboardPage = ({ setActivePage }: { setActivePage: (page: Page) => void 
         const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, count: value }));
         const categoryData = Object.entries(categoryCounts).map(([name, value]) => ({ name, value }));
 
-        const totalAssets = initialAssets.length;
-        const totalEmployees = new Set(initialAssets.map(a => a.assignedUser)).size;
+        const totalAssets = assets.length;
+        const totalEmployees = employees.length;
 
         return { statusData, categoryData, totalAssets, totalEmployees };
-    }, []);
+    }, [assets, employees]);
 
     const PIE_COLORS = [
         'hsl(var(--chart-1))',

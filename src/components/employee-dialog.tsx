@@ -13,7 +13,7 @@ import type { Employee } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Separator } from './ui/separator';
 
@@ -42,9 +42,10 @@ type EmployeeDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSave: (values: Omit<Employee, 'id' | 'avatar'>, id?: string) => void;
   employee?: Employee | null;
+  isSaving?: boolean;
 };
 
-export function EmployeeDialog({ open, onOpenChange, onSave, employee }: EmployeeDialogProps) {
+export function EmployeeDialog({ open, onOpenChange, onSave, employee, isSaving }: EmployeeDialogProps) {
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
@@ -66,31 +67,33 @@ export function EmployeeDialog({ open, onOpenChange, onSave, employee }: Employe
   });
 
   useEffect(() => {
-    if (employee) {
-      form.reset({
-        ...employee,
-        assets: {
-            ...employee.assets,
-            allocationDate: employee.assets.allocationDate ? new Date(employee.assets.allocationDate) : undefined,
+    if (open) {
+        if (employee) {
+          form.reset({
+            ...employee,
+            assets: {
+                ...employee.assets,
+                allocationDate: employee.assets.allocationDate ? new Date(employee.assets.allocationDate) : undefined,
+            }
+          });
+        } else {
+          form.reset({
+            name: '',
+            email: '',
+            contactNo: '',
+            department: '',
+            role: '',
+            assets: {
+              desktopLaptop: '',
+              assetTag: '',
+              monitor1: '',
+              monitor2: '',
+              webcamDockingStation: '',
+              headphone: '',
+              bagMouse: '',
+            }
+          });
         }
-      });
-    } else {
-      form.reset({
-        name: '',
-        email: '',
-        contactNo: '',
-        department: '',
-        role: '',
-        assets: {
-          desktopLaptop: '',
-          assetTag: '',
-          monitor1: '',
-          monitor2: '',
-          webcamDockingStation: '',
-          headphone: '',
-          bagMouse: '',
-        }
-      });
     }
   }, [employee, form, open]);
 
@@ -187,9 +190,12 @@ export function EmployeeDialog({ open, onOpenChange, onSave, employee }: Employe
 
             <DialogFooter className="pt-4 pr-6">
               <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
+                <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
               </DialogClose>
-              <Button type="submit">Save Employee</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Employee
+              </Button>
             </DialogFooter>
           </form>
         </Form>

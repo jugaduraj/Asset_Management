@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { useState, useMemo, forwardRef, useImperativeHandle, useTransition, useEffect } from 'react';
 import { AssetTable } from '@/components/asset-table';
 import { AssetDialog } from '@/components/asset-dialog';
 import { MaintenanceDialog } from '@/components/maintenance-dialog';
@@ -11,17 +11,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Boxes, PlusCircle, Search, Download } from 'lucide-react';
-import type { Asset, MaintenanceEntry, AssetStatus, AssetType, LogEntry } from '@/lib/types';
+import type { Asset, MaintenanceEntry, AssetStatus, AssetType } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { initialAssets } from '@/lib/data';
 import { downloadCsv } from '@/lib/export';
+import { saveAsset, deleteAsset, saveMaintenanceLog, getAssets } from '@/lib/actions';
 
-type AssetPageProps = {
-  addLogEntry: (log: Omit<LogEntry, 'id'>) => void;
-}
+type AssetPageProps = {}
 
-export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
-  const [assets, setAssets] = useState<Asset[]>(initialAssets);
+export const AssetPage = forwardRef<any, AssetPageProps>((props, ref) => {
+  const [isPending, startTransition] = useTransition();
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<AssetStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<AssetType | 'all'>('all');
@@ -37,6 +37,23 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   
   const { toast } = useToast();
+
+  const fetchAssets = async () => {
+      setIsLoading(true);
+      try {
+          const assetsData = await getAssets();
+          setAssets(assetsData);
+      } catch (error) {
+          console.error("Failed to fetch assets:", error);
+          toast({ title: "Error", description: "Could not fetch assets.", variant: "destructive" });
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  useEffect(() => {
+    fetchAssets();
+  }, []);
   
   useImperativeHandle(ref, () => ({
     openAddDialog: () => {
@@ -60,33 +77,13 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
   }, [assets, searchTerm, statusFilter, typeFilter, categoryFilter]);
 
   const handleSaveAsset = (values: Omit<Asset, 'id' | 'maintenanceHistory'>, id?: string) => {
-    const user = 'Guest User'; // In a real app, this would come from auth
-    if (id) {
-      setAssets(assets.map(a => a.id === id ? { ...a, ...values, maintenanceHistory: a.maintenanceHistory } : a));
-      toast({ title: "Asset Updated", description: `Successfully updated ${values.name}.` });
-      addLogEntry({
-          timestamp: new Date().toISOString(),
-          user,
-          action: 'Updated Asset',
-          details: `Asset "${values.name}" (${values.assetTag}) was updated.`
-      });
-    } else {
-      const newAsset: Asset = {
-        ...values,
-        id: new Date().toISOString(),
-        maintenanceHistory: [],
-      };
-      setAssets([...assets, newAsset]);
-      toast({ title: "Asset Added", description: `Successfully added ${values.name}.` });
-      addLogEntry({
-          timestamp: new Date().toISOString(),
-          user,
-          action: 'Created Asset',
-          details: `Asset "${values.name}" (${values.assetTag}) was created.`
-      });
-    }
-    setIsAssetDialogOpen(false);
-    setEditingAsset(null);
+    startTransition(async () => {
+        await saveAsset(values, id);
+        toast({ title: id ? "Asset Updated" : "Asset Added", description: `Successfully saved ${values.name}.` });
+        setIsAssetDialogOpen(false);
+        setEditingAsset(null);
+        fetchAssets(); // Refetch assets
+    });
   };
   
   const handleOpenAddDialog = () => {
@@ -105,25 +102,12 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
   };
   
   const handleSaveMaintenanceLog = (assetId: string, log: Omit<MaintenanceEntry, 'id'>) => {
-    const user = 'Guest User'; // In a real app, this would come from auth
-    let assetName = '';
-    setAssets(assets.map(a => {
-        if (a.id === assetId) {
-            assetName = a.name;
-            const newLog = {...log, id: new Date().toISOString()};
-            return { ...a, maintenanceHistory: [...a.maintenanceHistory, newLog] };
-        }
-        return a;
-    }));
-    toast({ title: "Maintenance Logged", description: `New maintenance entry added for asset.` });
-    addLogEntry({
-        timestamp: new Date().toISOString(),
-        user,
-        action: 'Logged Maintenance',
-        details: `Maintenance logged for "${assetName}": ${log.description}`
-    });
+     startTransition(async () => {
+        await saveMaintenanceLog(assetId, log);
+        toast({ title: "Maintenance Logged", description: `New maintenance entry added for asset.` });
+        fetchAssets(); // Refetch to show updated history
+     });
   };
-
 
   const handleOpenDeleteDialog = (asset: Asset) => {
     setDeletingAsset(asset);
@@ -131,18 +115,14 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
   };
 
   const handleDeleteConfirm = () => {
-    const user = 'Guest User'; // In a real app, this would come from auth
     if (deletingAsset) {
-      setAssets(assets.filter(a => a.id !== deletingAsset.id));
-      toast({ title: "Asset Deleted", description: `Successfully deleted ${deletingAsset.name}.`, variant: "destructive" });
-      addLogEntry({
-          timestamp: new Date().toISOString(),
-          user,
-          action: 'Deleted Asset',
-          details: `Asset "${deletingAsset.name}" (${deletingAsset.assetTag}) was deleted.`
-      });
-      setIsDeleteDialogOpen(false);
-      setDeletingAsset(null);
+        startTransition(async () => {
+            await deleteAsset(deletingAsset.id);
+            toast({ title: "Asset Deleted", description: `Successfully deleted ${deletingAsset.name}.`, variant: "destructive" });
+            setIsDeleteDialogOpen(false);
+            setDeletingAsset(null);
+            fetchAssets(); // Refetch assets
+        });
     }
   };
 
@@ -207,12 +187,16 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
             </Button>
           </CardHeader>
           <CardContent>
-            <AssetTable
-              assets={filteredAssets}
-              onEdit={handleOpenEditDialog}
-              onDelete={handleOpenDeleteDialog}
-              onLogMaintenance={handleOpenMaintenanceDialog}
-            />
+            {isLoading ? (
+                <div className="text-center py-10">Loading assets...</div>
+            ) : (
+                <AssetTable
+                assets={filteredAssets}
+                onEdit={handleOpenEditDialog}
+                onDelete={handleOpenDeleteDialog}
+                onLogMaintenance={handleOpenMaintenanceDialog}
+                />
+            )}
           </CardContent>
         </Card>
 
@@ -221,6 +205,7 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
         onOpenChange={setIsAssetDialogOpen}
         onSave={handleSaveAsset}
         asset={editingAsset}
+        isSaving={isPending}
       />
       
       <MaintenanceDialog
@@ -228,12 +213,14 @@ export const AssetPage = forwardRef(({ addLogEntry }: AssetPageProps, ref) => {
         onOpenChange={setIsMaintenanceDialogOpen}
         asset={maintenanceAsset}
         onSaveLog={handleSaveMaintenanceLog}
+        isSaving={isPending}
       />
 
       <DeleteConfirmDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
+        isDeleting={isPending}
         assetName={deletingAsset?.name}
       />
     </div>
