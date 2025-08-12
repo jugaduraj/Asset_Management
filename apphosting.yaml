@@ -1,0 +1,13 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  # Increase this value if you'd like to automatically spin up
+  # more instances in response to increased traffic.
+  maxInstances: 1
+# Pass secrets from Cloud Secret Manager to the app.
+# The backend needs to have access to the secret.
+# https://firebase.google.com/docs/app-hosting/configure#secret-env
+secretEnv:
+  - secret: MONGODB_URI
+    env: MONGODB_URI
