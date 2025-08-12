@@ -17,6 +17,16 @@ import { useToast } from "@/hooks/use-toast";
 export default function LogsPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+
+
+  useEffect(() => {
+    const storedLogs = localStorage.getItem('logs');
+    if (storedLogs) {
+      setLogs(JSON.parse(storedLogs));
+    }
+    setLoading(false);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -32,7 +42,11 @@ export default function LogsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logs.map((log) => (
+            {loading ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center">Loading logs...</TableCell>
+                </TableRow>
+            ) : logs.length > 0 ? logs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -51,7 +65,11 @@ export default function LogsPage() {
                   {format(new Date(log.timestamp), "MMM d, yyyy 'at' h:mm a")}
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No activity logs found.</TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

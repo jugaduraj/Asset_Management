@@ -20,6 +20,22 @@ export default function DashboardPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const storedAssets = localStorage.getItem('assets');
+    const storedEmployees = localStorage.getItem('employees');
+    const storedLogs = localStorage.getItem('logs');
+    
+    if (storedAssets) {
+      setAssets(JSON.parse(storedAssets));
+    }
+    if (storedEmployees) {
+      setEmployees(JSON.parse(storedEmployees));
+    }
+     if (storedLogs) {
+      setLogs(JSON.parse(storedLogs));
+    }
+  }, []);
+
   const totalAssets = assets.length;
   const assignedAssets = assets.filter((a) => a.status === "In Use").length;
   const inMaintenance = assets.filter(

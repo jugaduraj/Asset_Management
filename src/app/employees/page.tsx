@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Employee, Asset } from "@/types";
+import type { Employee, Asset, Log } from "@/types";
 import {
   Table,
   TableBody,
@@ -30,11 +30,13 @@ import { useToast } from "@/hooks/use-toast";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { DepartmentBreakdown } from "@/components/employees/department-breakdown";
 import { EmployeeDetailsModal } from "./employee-details-modal";
+import { v4 as uuidv4 } from 'uuid';
+
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
@@ -43,7 +45,32 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const storedEmployees = localStorage.getItem('employees');
+    if (storedEmployees) {
+        setEmployees(JSON.parse(storedEmployees));
+    }
+    const storedAssets = localStorage.getItem('assets');
+    if (storedAssets) {
+        setAssets(JSON.parse(storedAssets));
+    }
+    setLoading(false);
   }, []);
+
+  const addLog = (action: string, details: string) => {
+    const storedLogs = localStorage.getItem('logs') || '[]';
+    const logs: Log[] = JSON.parse(storedLogs);
+    const newLog: Log = {
+      id: uuidv4(),
+      user: 'Admin',
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+      avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fDE?q=80&w=2080&auto=format&fit=crop"
+    };
+    const updatedLogs = [newLog, ...logs];
+    localStorage.setItem('logs', JSON.stringify(updatedLogs));
+  };
+
 
   const handleViewEmployee = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -55,17 +82,25 @@ export default function EmployeesPage() {
     setSelectedEmployee(null);
   };
 
-  const handleDelete = (employeeId: string) => {
-    setEmployees(employees.filter(emp => emp.id !== employeeId));
+  const handleDelete = (employeeId: string, employeeName: string) => {
+    const updatedEmployees = employees.filter(emp => emp.id !== employeeId)
+    setEmployees(updatedEmployees);
+    localStorage.setItem('employees', JSON.stringify(updatedEmployees));
+    addLog('Removed Employee', `Removed employee ${employeeName}`);
     toast({ title: "Success", description: "Employee removed successfully!" });
   }
 
   const handleSuccess = (newEmployee: Employee) => {
-    if(selectedEmployee) {
-        setEmployees(employees.map(e => e.id === newEmployee.id ? newEmployee : e));
+    let updatedEmployees;
+    if(employees.find(e => e.id === newEmployee.id)) {
+        updatedEmployees = employees.map(e => e.id === newEmployee.id ? newEmployee : e);
+        addLog('Updated Employee', `Updated details for ${newEmployee.name}`);
     } else {
-        setEmployees([newEmployee, ...employees]);
+        updatedEmployees = [newEmployee, ...employees];
+        addLog('Added Employee', `Added new employee ${newEmployee.name}`);
     }
+    setEmployees(updatedEmployees);
+    localStorage.setItem('employees', JSON.stringify(updatedEmployees));
     setSelectedEmployee(null);
   };
 
@@ -220,7 +255,7 @@ export default function EmployeesPage() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(employee.id)}>
+                                <AlertDialogAction onClick={() => handleDelete(employee.id, employee.name)}>
                                   Remove
                                 </AlertDialogAction>
                               </AlertDialogFooter>

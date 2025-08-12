@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Asset, Employee } from "@/types";
+import type { Asset, Employee, Log } from "@/types";
 import { Download, PlusCircle, Search, Eye, FilePenLine, Trash2, Package, CheckCircle, Wrench, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddAssetSheet } from "./add-asset-sheet";
@@ -31,11 +31,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { AssetTypeBreakdown } from '@/components/assets/asset-type-breakdown';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -45,7 +46,31 @@ export default function AssetsPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const storedAssets = localStorage.getItem('assets');
+    const storedEmployees = localStorage.getItem('employees');
+    if (storedAssets) {
+      setAssets(JSON.parse(storedAssets));
+    }
+    if (storedEmployees) {
+      setEmployees(JSON.parse(storedEmployees));
+    }
+    setLoading(false);
   }, []);
+
+  const addLog = (action: string, details: string) => {
+    const storedLogs = localStorage.getItem('logs') || '[]';
+    const logs: Log[] = JSON.parse(storedLogs);
+    const newLog: Log = {
+      id: uuidv4(),
+      user: 'Admin',
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+      avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fDE?q=80&w=2080&auto=format&fit=crop"
+    };
+    const updatedLogs = [newLog, ...logs];
+    localStorage.setItem('logs', JSON.stringify(updatedLogs));
+  };
   
   const handleViewAsset = (asset: Asset) => {
     const assignedEmployee = getAssignedEmployee(asset.assignedTo);
@@ -59,17 +84,25 @@ export default function AssetsPage() {
   };
   
   const handleSheetSuccess = (newAsset: Asset) => {
-    if(selectedAsset) {
-        setAssets(assets.map(a => a.id === newAsset.id ? newAsset : a));
+    let updatedAssets;
+    if(assets.find(a => a.id === newAsset.id)) {
+        updatedAssets = assets.map(a => a.id === newAsset.id ? newAsset : a);
+        addLog('Updated Asset', `Updated details for asset ${newAsset.assetTag}`);
     } else {
-        setAssets([newAsset, ...assets]);
+        updatedAssets = [newAsset, ...assets];
+        addLog('Created Asset', `Created new asset ${newAsset.assetTag}`);
     }
+    setAssets(updatedAssets);
+    localStorage.setItem('assets', JSON.stringify(updatedAssets));
     setIsSheetOpen(false);
     setSelectedAsset(null);
   }
 
-  const handleDelete = (assetId: string) => {
-    setAssets(assets.filter(asset => asset.id !== assetId));
+  const handleDelete = (assetId: string, assetTag: string) => {
+    const updatedAssets = assets.filter(asset => asset.id !== assetId);
+    setAssets(updatedAssets);
+    localStorage.setItem('assets', JSON.stringify(updatedAssets));
+    addLog('Deleted Asset', `Deleted asset ${assetTag}`);
     toast({
         title: "Success",
         description: "Asset deleted successfully!",
@@ -303,7 +336,7 @@ export default function AssetsPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(asset.id)}>
+                              <AlertDialogAction onClick={() => handleDelete(asset.id, asset.assetTag)}>
                                 Delete
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -315,6 +348,11 @@ export default function AssetsPage() {
             )})}
           </TableBody>
         </Table>
+         {filteredAssets.length === 0 && !loading && (
+            <p className="text-center text-muted-foreground py-8">
+            {searchTerm ? "No assets found matching your search." : "No assets found. Add your first asset!"}
+            </p>
+        )}
       </div>
       <AssetDetailsModal asset={selectedAsset} isOpen={isModalOpen} onClose={handleCloseModal} />
     </div>
