@@ -35,6 +35,13 @@ Follow these instructions to get a copy of the project up and running on your lo
 - [Node.js](https://nodejs.org/en) (v18 or later)
 - [npm](https://www.npmjs.com/) (or another package manager like yarn or pnpm)
 
+### Login Credentials
+
+To access the application, use the following credentials on the login page:
+
+- **Username**: `admin`
+- **Password**: `password`
+
 ### Local Installation & Running
 
 1.  **Install Dependencies**:
