@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import AppLayout from "@/components/app-layout";
-import { ThemeProvider } from "@/components/theme-provider";
+import type {Metadata} from 'next';
+import './globals.css';
+import { Toaster } from "../components/ui/toaster"
+import { ThemeProvider } from '../components/theme-provider';
 
 export const metadata: Metadata = {
-  title: "AssetZen",
-  description: "Manage IT assets and employees with ease.",
+  title: 'AssetZen',
+  description: 'An intelligent asset management application.',
 };
 
 export default function RootLayout({
@@ -15,28 +14,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased">
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-        >
-            <AppLayout>{children}</AppLayout>
-            <Toaster />
+      <body className="font-body antialiased bg-background text-foreground">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

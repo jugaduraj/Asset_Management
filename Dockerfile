@@ -1,46 +1,48 @@
-# Stage 1: Build the application
-FROM node:20-alpine AS builder
+# Dockerfile
+
+# 1. Builder Stage
+# Use a specific Node.js version for reproducibility
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package manager files
+# Define a build-time argument for the MongoDB URI
+ARG MONGODB_URI
+
+# Set the environment variable for the build process
+ENV MONGODB_URI=${MONGODB_URI}
+
+# Copy package.json and package-lock.json first to leverage Docker cache
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy application files
+# Copy the rest of the application source code
 COPY . .
 
 # Build the Next.js application
+# The MONGODB_URI is required at build time from the ARG
 RUN npm run build
 
-# Stage 2: Create the production image
-FROM node:20-alpine AS runner
+# 2. Runner Stage
+# Use a slim, secure base image for the final container
+FROM node:18-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Set environment variables for Next.js
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+# Set the NODE_ENV to 'production' for performance
+ENV NODE_ENV production
 
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy the built application from the builder stage
+# COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-# Copy built assets from the builder stage
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
-# Change ownership to the non-root user
-USER nextjs
-
-# Expose the port the app will run on
+# Expose the port the app runs on
 EXPOSE 3000
 
-# Start the Next.js application
-CMD ["npm", "start"]
+# The command to start the application
+# Note: MONGODB_URI must be provided at runtime
+CMD ["node", "server.js"]

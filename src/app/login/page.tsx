@@ -1,8 +1,9 @@
-"use client";
 
-import { useState, useEffect } from "react";
-import { useRouter }from "next/navigation";
-import { Button } from "@/components/ui/button";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '../../components/ui/button';
 import {
   Card,
   CardContent,
@@ -10,78 +11,91 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+} from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { useToast } from '../../hooks/use-toast';
+import { Layers } from 'lucide-react';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // If user is already logged in, redirect to home
-    if (localStorage.getItem("isLoggedIn") === "true") {
-      router.replace("/");
+   useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'isAuthenticated' && event.newValue === 'true') {
+        router.push('/');
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (isAuthenticated) {
+      router.push('/');
+    }
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
     }
   }, [router]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === "admin" && password === "password") {
-      localStorage.setItem("isLoggedIn", "true");
-      toast({
-        title: "Login Successful",
-        description: "Welcome back, Admin!",
-      });
-      router.push("/");
+    if (username === 'admin' && password === 'password') {
+      localStorage.setItem('isAuthenticated', 'true');
+      router.push('/');
     } else {
       toast({
-        title: "Login Failed",
-        description: "Invalid username or password.",
-        variant: "destructive",
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'Invalid username or password.',
       });
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your dashboard.
-          </CardDescription>
-        </CardHeader>
         <form onSubmit={handleLogin}>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2">
+          <CardHeader className="text-center">
+            <div className="mb-4 flex justify-center">
+                <Layers className="h-8 w-8" />
+            </div>
+            <CardTitle className="text-2xl">AssetZen Login</CardTitle>
+            <CardDescription>
+              Enter your credentials to access your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="admin"
-                required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                required
               />
             </div>
-            <div className="grid gap-2">
+            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                required
-                placeholder="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full">Sign in</Button>
+            <Button type="submit" className="w-full">
+              Login
+            </Button>
           </CardFooter>
         </form>
       </Card>

@@ -1,16 +1,20 @@
-# Docker
-Dockerfile
-.dockerignore
+# Docker ignore
 
-# Git
+# Git files
 .git
 .gitignore
 
-# Node
-node_modules
-.next
+# Docker files
+.dockerignore
+Dockerfile
+
+# Local development
+.env
+.next/
+node_modules/
 npm-debug.log
 README.md
 
-# Env
-.env.local
+# OS-specific
+.DS_Store
+Thumbs.db
