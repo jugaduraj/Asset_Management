@@ -68,7 +68,7 @@ type AssetFormValues = z.infer<typeof assetFormSchema>;
 
 interface AddAssetDialogProps {
   children: React.ReactNode;
-  onAssetSubmit: (asset: Asset | Omit<Asset, 'id' | 'createdAt'>) => void;
+  onAssetSubmit: (asset: Asset | Omit<Asset, '_id' | 'createdAt'>) => void;
   asset?: Asset | null;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -138,11 +138,11 @@ export default function AddAssetDialog({ children, onAssetSubmit, asset, isOpen:
 
   function onSubmit(data: AssetFormValues) {
     const newOrUpdatedAsset = {
-      ...asset,
+      ...(asset || {}),
       ...data,
       warrantyExpiration: data.warrantyExpiration?.toISOString(),
     };
-    onAssetSubmit(newOrUpdatedAsset);
+    onAssetSubmit(newOrUpdatedAsset as Asset | Omit<Asset, '_id' | 'createdAt'>);
     setOpen(false);
   }
 
@@ -467,3 +467,5 @@ export default function AddAssetDialog({ children, onAssetSubmit, asset, isOpen:
     </Dialog>
   );
 }
+
+    

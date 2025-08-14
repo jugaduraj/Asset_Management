@@ -57,7 +57,7 @@ type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
 
 interface AddEmployeeDialogProps {
   children?: React.ReactNode;
-  onEmployeeSubmit: (employee: Employee) => void;
+  onEmployeeSubmit: (employee: Omit<Employee, '_id' | 'createdAt'> | Employee) => void;
   employee?: Employee | null;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -146,10 +146,10 @@ export default function AddEmployeeDialog({
 
   function onSubmit(data: EmployeeFormValues) {
     const newOrUpdatedEmployee = {
-      ...employee,
+      ...(employee || {}),
       ...data,
       allocationDate: data.allocationDate?.toISOString(),
-    } as Employee;
+    } as Employee | Omit<Employee, '_id' | 'createdAt'>;
     onEmployeeSubmit(newOrUpdatedEmployee);
     setOpen(false);
   }
@@ -493,3 +493,5 @@ export default function AddEmployeeDialog({
     </Dialog>
   );
 }
+
+    

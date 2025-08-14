@@ -23,18 +23,44 @@ export default function ProfilePage() {
     const { toast } = useToast();
     const [name, setName] = useState('Admin User');
     const [email, setEmail] = useState('admin@assetzen.com');
+    const [isSaving, setIsSaving] = useState(false);
+
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-    const handleSaveChanges = () => {
-        toast({
-            title: 'Profile Updated',
-            description: 'Your changes have been saved successfully.',
-        });
+    const handleSaveChanges = async () => {
+        setIsSaving(true);
+        try {
+            const response = await fetch('/api/auth/update-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to update profile');
+            }
+
+            toast({
+                title: 'Profile Updated',
+                description: 'Your changes have been saved successfully.',
+            });
+        } catch (error: any) {
+             toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: error.message,
+            });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleUpdatePassword = () => {
+    const handleUpdatePassword = async () => {
         if (newPassword !== confirmPassword) {
             toast({
                 variant: 'destructive',
@@ -51,13 +77,40 @@ export default function ProfilePage() {
             });
             return;
         }
-        toast({
-            title: 'Password Updated',
-            description: 'Your password has been changed successfully.',
-        });
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+
+        setIsUpdatingPassword(true);
+        try {
+            const response = await fetch('/api/auth/update-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword, newPassword }),
+            });
+            
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to update password');
+            }
+
+            toast({
+                title: 'Password Updated',
+                description: 'Your password has been changed successfully.',
+            });
+
+            // Clear fields on success
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: error.message,
+            });
+        } finally {
+            setIsUpdatingPassword(false);
+        }
     };
 
 
@@ -101,7 +154,9 @@ export default function ProfilePage() {
             </div>
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button onClick={handleSaveChanges}>Save Changes</Button>
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
           </CardFooter>
         </Card>
         
@@ -125,7 +180,9 @@ export default function ProfilePage() {
                 </div>
             </CardContent>
             <CardFooter className="border-t px-6 py-4">
-                <Button onClick={handleUpdatePassword}>Update Password</Button>
+                <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
+                    {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                </Button>
             </CardFooter>
         </Card>
       </div>

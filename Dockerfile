@@ -36,7 +36,7 @@ WORKDIR /app
 ENV NODE_ENV production
 
 # Copy the built application from the builder stage
-# COPY --from=builder /app/public ./public
+#COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 

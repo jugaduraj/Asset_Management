@@ -38,6 +38,9 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Employee ID is required' }, { status: 400 });
         }
 
+        // Ensure _id is not part of the update operation
+        delete updateData._id;
+
         const client = await clientPromise;
         const db = client.db('assetverse');
         const result = await db.collection('employees').updateOne(
