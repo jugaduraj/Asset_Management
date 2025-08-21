@@ -30,7 +30,7 @@ import AddEmployeeDialog from '@/components/add-employee-dialog';
 import ViewEmployeeDialog from '@/components/view-employee-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { createLog } from '@/lib/utils';
+import { createLog, exportToCsv } from '@/lib/utils';
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -126,6 +126,15 @@ export default function EmployeesPage() {
     setEditDialogOpen(true);
   }
 
+  const handleExport = () => {
+    if(employees.length > 0) {
+      exportToCsv(employees, `employees-export-${new Date().toISOString().split('T')[0]}.csv`);
+      toast({ title: 'Export Successful', description: 'Employee data has been exported to CSV.' });
+    } else {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'No data available to export.' });
+    }
+  }
+
   if (loading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -162,7 +171,7 @@ export default function EmployeesPage() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Employee Management</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Upload className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -321,3 +330,5 @@ export default function EmployeesPage() {
     </>
   );
 }
+
+    

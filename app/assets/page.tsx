@@ -49,7 +49,7 @@ import { format } from 'date-fns';
 import ViewAssetDialog from '@/components/view-asset-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { createLog } from '@/lib/utils';
+import { createLog, exportToCsv } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -217,6 +217,15 @@ export default function AssetsPage() {
     }
     return filtered;
   }, [assets, typeFilter, searchTerm]);
+
+  const handleExport = () => {
+    if(filteredAssets.length > 0) {
+      exportToCsv(filteredAssets, `assets-export-${new Date().toISOString().split('T')[0]}.csv`);
+      toast({ title: 'Export Successful', description: 'Asset data has been exported to CSV.' });
+    } else {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'No data available to export.' });
+    }
+  }
   
   if (loading) {
     return (
@@ -231,7 +240,7 @@ export default function AssetsPage() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">IT Asset Management</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Upload className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -450,3 +459,5 @@ export default function AssetsPage() {
     </>
   );
 }
+
+    
