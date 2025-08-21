@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface User {
   name: string;
@@ -16,12 +16,36 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>({
+const defaultUser: User = {
     name: 'Admin User',
     email: 'admin@assetzen.com',
     avatar: 'https://placehold.co/100x100.png',
-  });
+};
+
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUserState] = useState<User>(defaultUser);
+
+  useEffect(() => {
+    try {
+        const storedUser = localStorage.getItem('assetzen-user');
+        if (storedUser) {
+            setUserState(JSON.parse(storedUser));
+        }
+    } catch (error) {
+        console.error("Failed to parse user from localStorage", error);
+        // If parsing fails, we can fall back to the default user
+        setUserState(defaultUser);
+    }
+  }, []);
+
+  const setUser = (newUser: User) => {
+    try {
+        localStorage.setItem('assetzen-user', JSON.stringify(newUser));
+        setUserState(newUser);
+    } catch (error) {
+        console.error("Failed to save user to localStorage", error);
+    }
+  };
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
