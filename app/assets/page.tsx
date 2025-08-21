@@ -42,6 +42,7 @@ import {
   Video,
   Camera,
   XCircle,
+  Tv,
 } from 'lucide-react';
 import AddAssetDialog from '@/components/add-asset-dialog';
 import { format } from 'date-fns';
@@ -69,6 +70,8 @@ const AssetTypeIcon = ({ type }: { type: string }) => {
         case 'Access Point': return <Wifi {...iconProps} />;
         case 'Webcam': return <Camera {...iconProps} />;
         case 'NVR': return <Video {...iconProps} />;
+        case 'Server': return <Server {...iconProps} />;
+        case 'TV': return <Tv {...iconProps} />;
         case 'Other': return <Server {...iconProps} />;
         default: return <Server {...iconProps} />;
     }

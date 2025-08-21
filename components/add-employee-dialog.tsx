@@ -109,9 +109,9 @@ export default function AddEmployeeDialog({
       monitor2: '',
       webcam: '',
       dStation: '',
-      headphone: '',
-      bag: '',
-      mouse: '',
+      headphone: 'No',
+      bag: 'No',
+      mouse: 'No',
       allocationDate: null,
     },
   });
@@ -136,9 +136,9 @@ export default function AddEmployeeDialog({
             monitor2: '',
             webcam: '',
             dStation: '',
-            headphone: '',
-            bag: '',
-            mouse: '',
+            headphone: 'No',
+            bag: 'No',
+            mouse: 'No',
             allocationDate: null,
         })
     }
@@ -410,9 +410,17 @@ export default function AddEmployeeDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Headphone</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an option" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <SelectItem value="Yes">Yes</SelectItem>
+                           <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -423,9 +431,17 @@ export default function AddEmployeeDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Bag</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an option" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <SelectItem value="Yes">Yes</SelectItem>
+                           <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -436,9 +452,17 @@ export default function AddEmployeeDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Mouse</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an option" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <SelectItem value="Yes">Yes</SelectItem>
+                           <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -447,7 +471,7 @@ export default function AddEmployeeDialog({
                   control={form.control}
                   name="allocationDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                     <FormItem className="flex flex-col">
                       <FormLabel>Allocation Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -455,7 +479,7 @@ export default function AddEmployeeDialog({
                             <Button
                               variant={'outline'}
                               className={cn(
-                                'pl-3 text-left font-normal',
+                                'w-full pl-3 text-left font-normal',
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
@@ -469,12 +493,18 @@ export default function AddEmployeeDialog({
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
+                           <Calendar
                             mode="single"
                             selected={field.value || undefined}
                             onSelect={field.onChange}
+                            captionLayout="dropdown-buttons"
+                            fromYear={new Date().getFullYear() - 70}
+                            toYear={new Date().getFullYear()}
+                            disabled={(date) =>
+                                date > new Date() || date < new Date('1900-01-01')
+                            }
                             initialFocus
-                          />
+                            />
                         </PopoverContent>
                       </Popover>
                       <FormMessage />

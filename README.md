@@ -57,7 +57,7 @@ The application is configured to be built and run as a Docker container, which i
 2.  **Run the Docker Container**:
     Once the image is built, you can run it as a container. You must provide the `MONGODB_URI` as an environment variable to the container.
     ```bash
-    docker run -p 80:3000 -e MONGODB_URI="mongodb://assetzen:StrongPassword123@192.168.2.6:27017/assetzen?authSource=admin" assetzen-app
+    docker run -p 3000:3000 -e MONGODB_URI="mongodb://assetzen:StrongPassword123@192.168.2.6:27017/assetzen?authSource=admin" assetzen-app
     ```
     The application will be available at `http://localhost:3000`.
 

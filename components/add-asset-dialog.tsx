@@ -212,6 +212,8 @@ export default function AddAssetDialog({ children, onAssetSubmit, asset, isOpen:
                           <SelectItem value="Access Point">Access Point</SelectItem>
                           <SelectItem value="Webcam">Webcam</SelectItem>
                           <SelectItem value="NVR">NVR</SelectItem>
+                          <SelectItem value="Server">Server</SelectItem>
+                          <SelectItem value="TV">TV</SelectItem>
                           <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
@@ -393,7 +395,7 @@ export default function AddAssetDialog({ children, onAssetSubmit, asset, isOpen:
                             <Button
                               variant={'outline'}
                               className={cn(
-                                'pl-3 text-left font-normal',
+                                'w-full pl-3 text-left font-normal',
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
@@ -407,12 +409,18 @@ export default function AddAssetDialog({ children, onAssetSubmit, asset, isOpen:
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value || undefined}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
+                           <Calendar
+                              mode="single"
+                              selected={field.value || undefined}
+                              onSelect={field.onChange}
+                              captionLayout="dropdown-buttons"
+                              fromYear={new Date().getFullYear() - 10}
+                              toYear={new Date().getFullYear() + 20}
+                              disabled={(date) =>
+                                date < new Date('1900-01-01')
+                              }
+                              initialFocus
+                            />
                         </PopoverContent>
                       </Popover>
                       <FormMessage />
@@ -433,6 +441,7 @@ export default function AddAssetDialog({ children, onAssetSubmit, asset, isOpen:
                         </FormControl>
                         <SelectContent>
                            <SelectItem value="Unassigned">Unassigned</SelectItem>
+                           <SelectItem value="Deployed">Deployed</SelectItem>
                            {employees.map(employee => (
                             <SelectItem key={employee._id} value={employee.name}>{employee.name}</SelectItem>
                            ))}

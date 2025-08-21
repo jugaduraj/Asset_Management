@@ -22,29 +22,13 @@ const defaultUser: User = {
     avatar: 'https://placehold.co/100x100.png',
 };
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
+export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUserState] = useState<User>(defaultUser);
 
-  useEffect(() => {
-    try {
-        const storedUser = localStorage.getItem('assetzen-user');
-        if (storedUser) {
-            setUserState(JSON.parse(storedUser));
-        }
-    } catch (error) {
-        console.error("Failed to parse user from localStorage", error);
-        // If parsing fails, we can fall back to the default user
-        setUserState(defaultUser);
-    }
-  }, []);
-
   const setUser = (newUser: User) => {
-    try {
-        localStorage.setItem('assetzen-user', JSON.stringify(newUser));
-        setUserState(newUser);
-    } catch (error) {
-        console.error("Failed to save user to localStorage", error);
-    }
+    // In a real application with a database, this would save to the backend.
+    // For now, it only updates the state for the current session.
+    setUserState(newUser);
   };
 
   return (

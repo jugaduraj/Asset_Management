@@ -13,6 +13,7 @@ import { Button } from './ui/button';
 import { Employee } from '@/lib/types';
 import { format } from 'date-fns';
 import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
 
 interface ViewEmployeeDialogProps {
   employee: Employee | null;
@@ -44,6 +45,7 @@ export default function ViewEmployeeDialog({ employee, isOpen, onOpenChange }: V
 
                 <div className="col-span-2 mt-4">
                   <h3 className="text-lg font-semibold">Asset Allocation</h3>
+                   <Separator className="my-2" />
                 </div>
                 <div><span className="font-semibold text-muted-foreground">Desktop/Laptop:</span> {employee.desktopLaptop || 'N/A'}</div>
                 <div><span className="font-semibold text-muted-foreground">Asset Tag:</span> {employee.assetTag || 'N/A'}</div>
