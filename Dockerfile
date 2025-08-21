@@ -1,48 +1,63 @@
-# Dockerfile
-
-# 1. Builder Stage
-# Use a specific Node.js version for reproducibility
-FROM node:18-alpine AS builder
-
-# Set working directory
+# 1. Base Stage: Setup the basic environment
+FROM node:18-alpine AS base
 WORKDIR /app
+# The version of npm should match the one in package-lock.json for consistency.
+# If you update your local npm, you might need to update this line.
+RUN npm install -g npm@10.8.2
 
-# Define a build-time argument for the MongoDB URI
-ARG MONGODB_URI
+# 2. Dependencies Stage: Install npm dependencies
+# This stage is dedicated to installing dependencies, taking advantage of Docker's layer caching.
+# It only re-runs if package.json or package-lock.json changes.
+FROM base AS deps
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Set the environment variable for the build process
-ENV MONGODB_URI=${MONGODB_URI}
-
-# Copy package.json and package-lock.json first to leverage Docker cache
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application source code
+# 3. Build Stage: Build the Next.js application
+# This stage builds the application code. It uses the dependencies from the 'deps' stage.
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the Next.js application
-# The MONGODB_URI is required at build time from the ARG
+# Provide a dummy MONGODB_URI at build time.
+# The Next.js build process requires this variable to be present.
+# The real value will be provided at runtime.
+ENV MONGODB_URI="mongodb://dummy:dummy@localhost:27017/dummy"
+
+# Disable Next.js telemetry during the build.
+ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
-# 2. Runner Stage
-# Use a slim, secure base image for the final container
-FROM node:18-alpine
-
+# 4. Runner Stage: Create the final production image
+# This stage creates the final, lean image. It copies only the necessary artifacts
+# from the 'builder' stage to reduce the final image size.
+FROM base AS runner
 WORKDIR /app
 
-# Set the NODE_ENV to 'production' for performance
-ENV NODE_ENV production
+# Set environment variables for the production environment.
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy the built application from the builder stage
+# Create a non-root user for security purposes.
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+# Copy the built application from the 'builder' stage.
 #COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-# Expose the port the app runs on
+# Switch to the non-root user.
+USER nextjs
+
+# Expose the port the app will run on.
 EXPOSE 3000
 
-# The command to start the application
-# Note: MONGODB_URI must be provided at runtime
-CMD ["node", "server.js"]
+# Set the host to 0.0.0.0 to allow connections from outside the container.
+ENV HOSTNAME="0.0.0.0"
+ENV PORT=3000
+
+# The command to start the application.
+CMD ["npm", "start"]

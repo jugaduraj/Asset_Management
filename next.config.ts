@@ -5,12 +5,6 @@ import path from 'path';
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -20,6 +14,9 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  experimental: {
+    // No experimental features are currently enabled.
   },
 };
 
