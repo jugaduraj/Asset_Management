@@ -43,6 +43,7 @@ import {
   Camera,
   XCircle,
   Tv,
+  Box,
 } from 'lucide-react';
 import AddAssetDialog from '@/components/add-asset-dialog';
 import { format } from 'date-fns';
@@ -87,6 +88,7 @@ export default function AssetsPage() {
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -205,6 +207,13 @@ export default function AssetsPage() {
     if (typeFilter) {
       filtered = filtered.filter(asset => asset.type === typeFilter);
     }
+    if (statusFilter) {
+        if (statusFilter === 'Unassigned') {
+            filtered = filtered.filter(asset => asset.assignedTo === 'Unassigned');
+        } else {
+            filtered = filtered.filter(asset => asset.status === statusFilter);
+        }
+    }
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(asset =>
@@ -216,7 +225,7 @@ export default function AssetsPage() {
       );
     }
     return filtered;
-  }, [assets, typeFilter, searchTerm]);
+  }, [assets, typeFilter, searchTerm, statusFilter]);
 
   const handleExport = () => {
     if(filteredAssets.length > 0) {
@@ -225,6 +234,12 @@ export default function AssetsPage() {
     } else {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'No data available to export.' });
     }
+  }
+
+  const clearFilters = () => {
+    setTypeFilter(null);
+    setStatusFilter(null);
+    setSearchTerm('');
   }
   
   if (loading) {
@@ -253,7 +268,7 @@ export default function AssetsPage() {
         </div>
       </header>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card onClick={() => setStatusFilter(null)} className={cn("cursor-pointer transition-colors", !statusFilter ? "bg-muted" : "hover:bg-muted/50")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total Assets
@@ -264,7 +279,7 @@ export default function AssetsPage() {
             <div className="text-2xl font-bold">{Array.isArray(assets) ? assets.length : 0}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setStatusFilter('Active')} className={cn("cursor-pointer transition-colors", statusFilter === 'Active' ? "bg-muted" : "hover:bg-muted/50")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Active Assets
@@ -275,7 +290,7 @@ export default function AssetsPage() {
             <div className="text-2xl font-bold">{Array.isArray(assets) ? assets.filter(a => a.status === 'Active').length : 0}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setStatusFilter('In Repair')} className={cn("cursor-pointer transition-colors", statusFilter === 'In Repair' ? "bg-muted" : "hover:bg-muted/50")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Under Maintenance
@@ -286,18 +301,15 @@ export default function AssetsPage() {
             <div className="text-2xl font-bold">{Array.isArray(assets) ? assets.filter(a => a.status === 'In Repair').length : 0}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setStatusFilter('Unassigned')} className={cn("cursor-pointer transition-colors", statusFilter === 'Unassigned' ? "bg-muted" : "hover:bg-muted/50")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Warranty Expiring Soon
+              Unassigned Assets
             </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <Box className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              Expiring in next 30 days
-            </p>
+            <div className="text-2xl font-bold">{Array.isArray(assets) ? assets.filter(a => a.assignedTo === 'Unassigned').length : 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -349,10 +361,10 @@ export default function AssetsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            {typeFilter && (
-                <Button variant="ghost" onClick={() => setTypeFilter(null)} className="ml-4">
+            {(typeFilter || statusFilter) && (
+                <Button variant="ghost" onClick={clearFilters} className="ml-4">
                     <XCircle className="mr-2 h-4 w-4"/>
-                    Clear Filter
+                    Clear Filters
                 </Button>
             )}
            </div>
@@ -459,5 +471,7 @@ export default function AssetsPage() {
     </>
   );
 }
+
+    
 
     

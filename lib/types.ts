@@ -1,4 +1,11 @@
 
+
+export interface AssignmentHistory {
+  assignedTo: string;
+  assignedDate: string;
+  returnedDate: string;
+}
+
 export interface Asset {
   _id: string;
   assetTag: string;
@@ -18,6 +25,7 @@ export interface Asset {
   warrantyStatus: 'Active' | 'Expired' | 'Not Applicable';
   warrantyExpiration?: string;
   assignedTo?: string;
+  assignmentHistory?: AssignmentHistory[];
   remark?: string;
   createdAt: string;
   url?: string;
@@ -52,3 +60,4 @@ export type Employee = {
     allocationDate?: string;
     createdAt: string;
 };
+

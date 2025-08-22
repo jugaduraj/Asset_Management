@@ -25,12 +25,14 @@ import {
   FilePenLine,
   Trash2,
   Loader2,
+  UserMinus,
 } from 'lucide-react';
 import AddEmployeeDialog from '@/components/add-employee-dialog';
 import ViewEmployeeDialog from '@/components/view-employee-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { createLog, exportToCsv } from '@/lib/utils';
+import OffboardEmployeeDialog from '@/components/offboard-employee-dialog';
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -39,6 +41,7 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isViewDialogOpen, setViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  const [isOffboardDialogOpen, setOffboardDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchEmployees = useCallback(async () => {
@@ -75,46 +78,121 @@ export default function EmployeesPage() {
     const employee = employeeData as Employee;
     const url = '/api/employees';
     const method = isEditing ? 'PUT' : 'POST';
-    const body = JSON.stringify(employee);
-
+    
     try {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body,
+        body: JSON.stringify(employee),
       });
       if (!response.ok) throw new Error(`Failed to ${isEditing ? 'update' : 'add'} employee`);
+      const savedEmployee = await response.json();
+
+      const allocatedAssetTags = [
+        employee.assetTag,
+        employee.monitor1,
+        employee.monitor2,
+        employee.webcam,
+        employee.dStation
+      ].filter(Boolean) as string[];
+
+      if (allocatedAssetTags.length > 0) {
+        await Promise.all(allocatedAssetTags.map(tag => {
+          return fetch('/api/assets', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              _id: assets.find(a => a.assetTag === tag)?._id,
+              assignedTo: savedEmployee.name,
+              status: 'Active'
+            }),
+          });
+        }));
+      }
+
       toast({ title: `Employee ${isEditing ? 'updated' : 'added'} successfully` });
       
       const logAction = isEditing ? 'Updated Employee' : 'Created Employee';
       const logDetails = `Employee ${employee.name} (${employee.employeeId}) was ${isEditing ? 'updated' : 'created'}.`;
       await createLog('Admin User', logAction, logDetails);
 
+      if (allocatedAssetTags.length > 0) {
+        await createLog('System', 'Allocated Assets', `Assets (${allocatedAssetTags.join(', ')}) allocated to ${savedEmployee.name}.`);
+      }
+
       fetchEmployees();
+      fetchAssets();
     } catch (error) {
       toast({ variant: 'destructive', title: `Error ${isEditing ? 'updating' : 'adding'} employee` });
     }
     setSelectedEmployee(null);
   };
   
-  const handleDeleteEmployee = async (employeeId: string) => {
-    try {
-      const employeeToDelete = employees.find(e => e._id === employeeId);
-      const response = await fetch('/api/employees', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: employeeId }),
-      });
-      if (!response.ok) throw new Error('Failed to delete employee');
-      toast({ title: 'Employee deleted successfully' });
-      if(employeeToDelete) {
-        await createLog('Admin User', 'Deleted Employee', `Employee ${employeeToDelete.name} (${employeeToDelete.employeeId}) was deleted.`);
-      }
-      fetchEmployees();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error deleting employee' });
+const handleOffboardEmployee = async (employeeId: string, returnedAssetTags: string[]) => {
+    const employeeToOffboard = employees.find(e => e._id === employeeId);
+    if (!employeeToOffboard) {
+        toast({ variant: 'destructive', title: 'Employee not found' });
+        return;
     }
-  }
+
+    try {
+        const assetsToUpdate = assets.filter(asset => returnedAssetTags.includes(asset.assetTag));
+        
+        // Use Promise.all to update all assets concurrently
+        await Promise.all(assetsToUpdate.map(async (asset) => {
+            const newHistoryEntry = {
+                assignedTo: employeeToOffboard.name,
+                assignedDate: employeeToOffboard.allocationDate || asset.createdAt, // Fallback to asset creation date
+                returnedDate: new Date().toISOString(),
+            };
+
+            const updatedHistory = Array.isArray(asset.assignmentHistory)
+                ? [...asset.assignmentHistory, newHistoryEntry]
+                : [newHistoryEntry];
+
+            const updateResponse = await fetch('/api/assets', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    _id: asset._id,
+                    assignedTo: 'Unassigned',
+                    status: 'Inactive',
+                    assignmentHistory: updatedHistory,
+                }),
+            });
+
+            if (!updateResponse.ok) {
+                throw new Error(`Failed to de-allocate asset ${asset.assetTag}.`);
+            }
+        }));
+
+        if (assetsToUpdate.length > 0) {
+            await createLog('System', `Offboarded ${employeeToOffboard.name}`, `Returned assets: ${returnedAssetTags.join(', ')}.`);
+            toast({ title: `Assets from ${employeeToOffboard.name} processed.` });
+        }
+        
+        // Delete the employee after all assets have been processed
+        const deleteResponse = await fetch('/api/employees', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: employeeId }),
+        });
+
+        if (!deleteResponse.ok) {
+            throw new Error('Failed to delete employee after de-allocating assets.');
+        }
+
+        toast({ title: 'Employee offboarded successfully' });
+        await createLog('Admin User', 'Deleted Employee', `Employee ${employeeToOffboard.name} (${employeeToOffboard.employeeId}) was removed after offboarding.`);
+
+        fetchEmployees();
+        fetchAssets();
+
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error during offboarding', description: error.message });
+    }
+};
+
 
   const handleViewEmployee = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -125,6 +203,11 @@ export default function EmployeesPage() {
     setSelectedEmployee(employee);
     setEditDialogOpen(true);
   }
+
+  const handleOpenOffboardDialog = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setOffboardDialogOpen(true);
+  };
 
   const handleExport = () => {
     if(employees.length > 0) {
@@ -275,26 +358,9 @@ export default function EmployeesPage() {
                         <Button variant="ghost" size="icon" onClick={() => handleEditEmployee(employee)}>
                           <FilePenLine className="h-4 w-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the employee
-                                and remove their data from our servers.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteEmployee(employee._id)}>Continue</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleOpenOffboardDialog(employee)}>
+                            <UserMinus className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -326,6 +392,15 @@ export default function EmployeesPage() {
               availableDStations={availableDStations}
               allDStations={allDStations}
           />
+      )}
+      {selectedEmployee && (
+        <OffboardEmployeeDialog
+            employee={selectedEmployee}
+            isOpen={isOffboardDialogOpen}
+            onOpenChange={setOffboardDialogOpen}
+            onConfirmOffboarding={handleOffboardEmployee}
+            assets={assets}
+        />
       )}
     </>
   );

@@ -49,18 +49,29 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Asset ID is required' }, { status: 400 });
         }
 
-        const db = await getDb();
-        const result = await db.collection('assets').updateOne(
-            { _id: new ObjectId(_id) },
-            { $set: updateData }
-        );
+        if (Array.isArray(_id)) {
+            // Handle bulk updates
+            const db = await getDb();
+            const result = await db.collection('assets').updateMany(
+                { _id: { $in: _id.map(id => new ObjectId(id)) } },
+                { $set: updateData }
+            );
+            return NextResponse.json({ matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
+        } else {
+            // Handle single update
+            const db = await getDb();
+            const result = await db.collection('assets').updateOne(
+                { _id: new ObjectId(_id) },
+                { $set: updateData }
+            );
 
-        if (result.matchedCount === 0) {
-            return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+            if (result.matchedCount === 0) {
+                return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+            }
+
+            const updatedAsset = await db.collection('assets').findOne({ _id: new ObjectId(_id) });
+            return NextResponse.json(updatedAsset);
         }
-
-        const updatedAsset = await db.collection('assets').findOne({ _id: new ObjectId(_id) });
-        return NextResponse.json(updatedAsset);
 
     } catch (e: any) {
         console.error(e);
